@@ -1,5 +1,4 @@
 all: build test
-test: test
 
 .PHONY: build
 build:

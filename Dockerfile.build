@@ -1,6 +1,4 @@
-# syntax = docker/dockerfile:1
-
-FROM --platform=${BUILDPLATFORM} golang:1.17.6-alpine AS base
+FROM golang:1.17.6-alpine AS base
 WORKDIR /src
 ENV CGO_ENABLED=0
 COPY go.mod .
@@ -13,7 +11,6 @@ FROM base AS build
 RUN go build -o /bin/vwap .
 
 FROM base AS unit-test
-RUN go mod tidy
 RUN go generate ./...
 RUN go test -v ./...
 
