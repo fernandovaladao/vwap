@@ -1,3 +1,5 @@
+# syntax = docker/dockerfile:1
+
 FROM golang:1.17.6-alpine AS base
 WORKDIR /src
 ENV CGO_ENABLED=0
@@ -15,4 +17,7 @@ RUN go generate ./...
 RUN go test -v ./...
 
 FROM scratch AS bin
+WORKDIR /
+COPY certs /etc/ssl/certs
 COPY --from=build /bin/vwap /
+ENTRYPOINT ["/vwap"]
