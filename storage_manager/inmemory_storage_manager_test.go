@@ -6,13 +6,12 @@ import (
 
 	ds "github.com/fernandovaladao/vwap/data_structures"
 
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestStore(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	testCases := []struct {
 		name      string

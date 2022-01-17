@@ -49,14 +49,11 @@ func (vwape *VwapEngine) Calculate() {
 func (vwape *VwapEngine) readNextTradePair() (*ts.Trade, error) {
 	trade, err := vwape.client.ReadValue()
 	if err != nil {
-		log.WithError(err).Error()
+		log.WithError(err).Error("Error reading next trade stream message")
 		return nil, err
 	}
 	if trade.Type == "error" {
-		log.WithFields(log.Fields{
-			"reason":  trade.Reason,
-			"message": trade.Message,
-		}).Error()
+		log.WithField("reason", trade.Reason).WithField("message", trade.Message).Error("Error message returned by trade stream client")
 		return nil, fmt.Errorf("%s", trade.Type)
 	}
 	return trade, nil
@@ -65,13 +62,12 @@ func (vwape *VwapEngine) readNextTradePair() (*ts.Trade, error) {
 func (vwape *VwapEngine) logUpdatedVwap(tp *ts.Trade) {
 	pair := tp.Pair
 	if sm, ok := vwape.storageManagers[tradingPair(pair)]; !ok {
-		log.WithFields(log.Fields{
-			"trade_pair": pair,
-		}).Warn("Received a trading price for an unexpected trading pair.")
+		log.WithField("trade_pair", pair).Warn("Received a trading price for an unexpected trading pair.")
 	} else if price, err := strconv.ParseFloat(tp.Price, 64); err != nil {
-		log.WithError(err).Errorf("Error converting %s to float64.", tp.Price)
+		log.WithError(err).WithField("price", tp.Price).Error("Error converting price to float64")
+	} else if vwap, err := vwape.calculateVwap(sm, price); err != nil {
+		log.WithError(err).WithField("trade_pair", pair).WithField("price", price).Error("Error calculating vwap")
 	} else {
-		vwap := vwape.calculateVwap(sm, price)
 		log.WithFields(log.Fields{
 			"trade_pair": pair,
 			"vwap":       vwap,
@@ -79,7 +75,10 @@ func (vwape *VwapEngine) logUpdatedVwap(tp *ts.Trade) {
 	}
 }
 
-func (vwape *VwapEngine) calculateVwap(sm sm.StorageManager, price float64) float64 {
-	sm.Store(price)
-	return sm.GetSum() / maxStorage
+func (vwape *VwapEngine) calculateVwap(sm sm.StorageManager, price float64) (float64, error) {
+	if err := sm.Store(price); err != nil {
+		return 0.00, err
+	} else {
+		return sm.GetSum() / maxStorage, nil
+	}
 }
