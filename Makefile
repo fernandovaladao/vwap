@@ -22,6 +22,15 @@ test:
 		--target unit-test
 	$(DOCKER_BUILDKIT) docker build . \
 		--target integration-test
+	DOCKER_BUILDKIT=1 docker build . \
+		-f Dockerfile.functional \
+		-t zero-hash-vwap-functional-tests:latest \
+		--target functional-test
+	docker run -it \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		zero-hash-vwap-functional-tests:latest \
+		go test -v --tags functional
+	docker rmi zero-hash-vwap-functional-tests:latest
 
 .PHONY: run
 run:

@@ -1,0 +1,12 @@
+FROM golang:1.17.6-alpine AS base
+RUN apk add --update docker openrc
+RUN rc-update add docker boot
+WORKDIR /src
+ENV CGO_ENABLED=0
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+COPY functional_test.go .
+
+FROM base AS functional-test
+RUN go mod tidy

@@ -9,9 +9,10 @@ RUN go mod download
 RUN go install github.com/golang/mock/mockgen@v1.6.0
 
 FROM base AS build
+RUN go mod tidy
 RUN go build -o /bin/vwap .
 
-FROM base AS unit-test
+FROM build AS unit-test
 RUN go generate ./...
 RUN go test -v ./...
 
