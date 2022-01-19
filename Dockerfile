@@ -16,6 +16,9 @@ FROM base AS unit-test
 RUN go generate ./...
 RUN go test -v ./...
 
+FROM base AS integration-test
+RUN go test -v --tags integration .
+
 FROM scratch AS bin
 WORKDIR /
 COPY certs /etc/ssl/certs
