@@ -1,13 +1,16 @@
 package main
 
 import (
+	"os"
+
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	vwape, err := NewVwapEngine([]string{"BTC-USD", "ETH-USD", "ETH-BTC"})
+	tradePairs := os.Args[1:]
+	vwape, err := NewVwapEngine(tradePairs)
 	if err != nil {
-		log.Fatalf("Error when initializing vwap: %v", err)
+		log.Fatalf("Error when initializing vwap engine: %v", err)
 	}
 	vwape.Calculate()
 }

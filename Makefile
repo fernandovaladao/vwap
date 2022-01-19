@@ -28,4 +28,4 @@ run:
 	@docker run \
 		--name $(CONTAINER) \
 		--rm \
-		$(IMAGE):$(VERSION)
+		$(IMAGE):$(VERSION) BTC-USD ETH-BTC ETH-USD

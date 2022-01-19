@@ -3,11 +3,10 @@
 FROM golang:1.17.6-alpine AS base
 WORKDIR /src
 ENV CGO_ENABLED=0
-COPY go.mod .
-COPY go.sum .
+COPY . .
+RUN go mod tidy
 RUN go mod download
 RUN go install github.com/golang/mock/mockgen@v1.6.0
-COPY . .
 
 FROM base AS build
 RUN go build -o /bin/vwap .
