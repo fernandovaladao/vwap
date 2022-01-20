@@ -28,6 +28,7 @@ test:
 		--target functional-test
 	docker run -it \
 		-v /var/run/docker.sock:/var/run/docker.sock \
+		--rm \
 		zero-hash-vwap-functional-tests:latest \
 		go test -v --tags functional
 	docker rmi zero-hash-vwap-functional-tests:latest

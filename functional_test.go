@@ -3,37 +3,57 @@
 package main
 
 import (
-	"fmt"
-	"testing"
+	"bytes"
 	"context"
+	"fmt"
+	"io"
+	"testing"
+	"time"
 
 	dockertest "github.com/ory/dockertest/v3"
-	docker "github.com/ory/dockertest/v3/docker"
+	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 )
 
 func TestVwapEngine(t *testing.T) {
 	pool, err := dockertest.NewPool("")
-	require.NoError(t, err, "could not connect to Docker")
+	if err != nil {
+		require.FailNow(t, fmt.Sprintf("could not connect to Docker: %v", err))
+	}
 
 	container, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "zero-hash-vwap",
 		Tag:        "v1.0.0",
+		Cmd: []string{"BTC-USD"},
 	})
-	fmt.Printf("%v", container.Container.ID)
-	opts := docker.LogsOptions{
-		Context: context.TODO(),
-		Stderr:      true,
-		Stdout:      true,
-		Follow:      false,
-		Timestamps:  true,
-		RawTerminal: true,
-		Container: container.Container.ID,
+	if err != nil {
+		require.FailNow(t, fmt.Sprintf("could not start container: %v", err))
 	}
-	fmt.Printf("%v", pool.Client.Logs(opts))
-	require.NoError(t, err, "could not start container")
+	
+	fmt.Printf("%v", container.Container.ID)
+	// start streaming logs
+	containerLogs := streamLogs(pool, container)
+	fmt.Printf("Logs are %s", containerLogs)
 
 	t.Cleanup(func() {
 		require.NoError(t, pool.Purge(container), "failed to remove container")
 	})
+}
+
+func streamLogs(pool *dockertest.Pool, container *dockertest.Resource) string {
+	var b bytes.Buffer
+	logsWriter := io.Writer(&b)
+	opts := docker.LogsOptions{
+		Context: context.TODO(),
+		Stderr:      true,
+		Stdout:      true,
+		Follow:      true,
+		Timestamps:  true,
+		RawTerminal: true,
+		Container: container.Container.ID,
+		OutputStream: logsWriter,
+	}
+	go pool.Client.Logs(opts)
+	time.Sleep(5*time.Second)
+	return b.String()
 }
