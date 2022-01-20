@@ -17,6 +17,7 @@ type tradingPair string
 type VwapEngine struct {
 	storageManagers map[tradingPair]sm.StorageManager
 	client          ts.Client
+	log             *log.Logger
 }
 
 func NewVwapEngine(tradingPairs []string) (*VwapEngine, error) {
@@ -30,6 +31,7 @@ func NewVwapEngine(tradingPairs []string) (*VwapEngine, error) {
 		return &VwapEngine{
 			storageManagers: storageManagers,
 			client:          streamingClient,
+			log:             log.New(),
 		}, nil
 	}
 }
@@ -47,11 +49,11 @@ func (vwape *VwapEngine) Calculate() {
 func (vwape *VwapEngine) readNextTradePair() (*ts.Trade, error) {
 	trade, err := vwape.client.ReadValue()
 	if err != nil {
-		log.WithError(err).Error("Error reading next trade stream message")
+		vwape.log.WithError(err).Error("Error reading next trade stream message")
 		return nil, err
 	}
 	if trade.Type == "error" {
-		log.WithField("reason", trade.Reason).WithField("message", trade.Message).Error("Error message returned by trade stream client")
+		vwape.log.WithField("reason", trade.Reason).WithField("message", trade.Message).Error("Error message returned by trade stream client")
 		return nil, fmt.Errorf("%s", trade.Type)
 	}
 	return trade, nil
@@ -61,19 +63,16 @@ func (vwape *VwapEngine) logUpdatedVwap(tp *ts.Trade) {
 	pair := tp.Pair
 	if sm, ok := vwape.storageManagers[tradingPair(pair)]; !ok {
 		if pair != "" {
-			log.WithField("trade_pair", pair).Warn("Received a trading price for an unexpected trading pair.")
+			vwape.log.WithField("trade_pair", pair).Warn("Received a trading price for an unexpected trading pair.")
 		} else {
-			log.WithField("trade", tp).Warn("Unknown trading message")
+			vwape.log.WithField("trade", tp).Warn("Unknown trading message")
 		}
 	} else if price, err := strconv.ParseFloat(tp.Price, 64); err != nil {
-		log.WithError(err).WithField("price", tp.Price).Error("Error converting price to float64")
+		vwape.log.WithError(err).WithField("price", tp.Price).Error("Error converting price to float64")
 	} else if vwap, err := vwape.calculateVwap(sm, price); err != nil {
-		log.WithError(err).WithField("trade_pair", pair).WithField("price", price).Error("Error calculating vwap")
+		vwape.log.WithError(err).WithField("trade_pair", pair).WithField("price", price).Error("Error calculating vwap")
 	} else {
-		log.WithFields(log.Fields{
-			"trade_pair": pair,
-			"vwap":       vwap,
-		}).Info()
+		vwape.log.WithField("trade_pair", pair).WithField("vwap", vwap).Info()
 	}
 }
 

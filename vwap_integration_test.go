@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBTCUSDCalculateVwap(t *testing.T) {
+func TestCalculateBTCUSDVwap(t *testing.T) {
 	tradePair := "BTC-USD"
 	vwape, err := NewVwapEngine([]string{tradePair})
 	assert.Nil(t, err)

@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	sm "github.com/fernandovaladao/vwap/storage_manager"
 	ts "github.com/fernandovaladao/vwap/trade_streaming"
 
 	"github.com/golang/mock/gomock"
+	log "github.com/sirupsen/logrus"
+	logTest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,6 +80,7 @@ func TestReadNextTradePair(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			vwap := VwapEngine{
 				client: tt.mockClient(ctrl),
+				log:    log.New(),
 			}
 
 			trade, err := vwap.readNextTradePair()
@@ -87,7 +91,133 @@ func TestReadNextTradePair(t *testing.T) {
 }
 
 func TestLogUpdatedVwap(t *testing.T) {
-	// TODO check logrus on how to do asserts with logs.
+	ctrl := gomock.NewController(t)
+
+	testcases := []struct {
+		name               string
+		tp                 *ts.Trade
+		mockStorageManager func(ctrl *gomock.Controller, tp *ts.Trade) map[tradingPair]sm.StorageManager
+		doAsserts          func(t *testing.T, tp *ts.Trade, hook *logTest.Hook)
+	}{
+		{
+			name: "Happy path: no errors returned",
+			tp: &ts.Trade{
+				Pair: "BTC-USD",
+				Price: "100.00",
+			},
+			mockStorageManager: func(ctrl *gomock.Controller, tp *ts.Trade) map[tradingPair]sm.StorageManager {
+				sms := make(map[tradingPair]sm.StorageManager)
+				sm := sm.NewMockStorageManager(ctrl)
+				price, _ := strconv.ParseFloat(tp.Price, 64)
+				sm.EXPECT().Store(price)
+				sm.EXPECT().GetSum().Return(float64(price * 1000.00))
+				sms[tradingPair(tp.Pair)] = sm
+				return sms
+			},
+			doAsserts: func(t *testing.T, tp *ts.Trade, hook *logTest.Hook){
+				assert.Equal(t, 1, len(hook.Entries))
+				entry := hook.LastEntry()
+				assert.Equal(t, log.InfoLevel, entry.Level)
+				assert.Equal(t, tp.Pair, entry.Data["trade_pair"])
+				assert.Equal(t, 500.00, entry.Data["vwap"])
+			},
+		},
+		{
+			name: "Unexpected trading pair",
+			tp: &ts.Trade{
+				Pair: "FOO-BAR",
+			},
+			mockStorageManager: func(ctrl *gomock.Controller, tp *ts.Trade) map[tradingPair]sm.StorageManager {
+				sms := make(map[tradingPair]sm.StorageManager)
+				sm := sm.NewMockStorageManager(ctrl)
+				sms["BTC-USD"] = sm
+				return sms
+			},
+			doAsserts: func(t *testing.T, tp *ts.Trade, hook *logTest.Hook){
+				assert.Equal(t, 1, len(hook.Entries))
+				entry := hook.LastEntry()
+				assert.Equal(t, log.WarnLevel, entry.Level)
+				assert.Equal(t, tp.Pair, entry.Data["trade_pair"])
+				assert.NotEmpty(t, entry.Message)
+			},
+		},
+		{
+			name: "Empty trading pair",
+			tp: &ts.Trade{
+				Pair: "",
+			},
+			mockStorageManager: func(ctrl *gomock.Controller, tp *ts.Trade) map[tradingPair]sm.StorageManager {
+				sms := make(map[tradingPair]sm.StorageManager)
+				sm := sm.NewMockStorageManager(ctrl)
+				sms["BTC-USD"] = sm
+				return sms
+			},
+			doAsserts: func(t *testing.T, tp *ts.Trade, hook *logTest.Hook){
+				assert.Equal(t, 1, len(hook.Entries))
+				entry := hook.LastEntry()
+				assert.Equal(t, log.WarnLevel, entry.Level)
+				assert.Equal(t, tp, entry.Data["trade"])
+				assert.NotEmpty(t, entry.Message)
+			},
+		},	
+		{
+			name: "Trading pair with invalid price",
+			tp: &ts.Trade{
+				Pair: "BTC-USD",
+				Price: "XYZ",
+			},
+			mockStorageManager: func(ctrl *gomock.Controller, tp *ts.Trade) map[tradingPair]sm.StorageManager {
+				sms := make(map[tradingPair]sm.StorageManager)
+				sm := sm.NewMockStorageManager(ctrl)
+				sms[tradingPair(tp.Pair)] = sm
+				return sms
+			},
+			doAsserts: func(t *testing.T, tp *ts.Trade, hook *logTest.Hook){
+				assert.Equal(t, 1, len(hook.Entries))
+				entry := hook.LastEntry()
+				assert.Equal(t, log.ErrorLevel, entry.Level)
+				assert.Equal(t, tp.Price, entry.Data["price"])
+				assert.NotEmpty(t, entry.Message)
+			},
+		},
+		{
+			name: "Error to store in storage manager",
+			tp: &ts.Trade{
+				Pair: "BTC-USD",
+				Price: "100.00",
+			},
+			mockStorageManager: func(ctrl *gomock.Controller, tp *ts.Trade) map[tradingPair]sm.StorageManager {
+				sms := make(map[tradingPair]sm.StorageManager)
+				sm := sm.NewMockStorageManager(ctrl)
+				price, _ := strconv.ParseFloat(tp.Price, 64)
+				sm.EXPECT().Store(price).Return(fmt.Errorf("error"))
+				sms[tradingPair(tp.Pair)] = sm
+				return sms
+			},
+			doAsserts: func(t *testing.T, tp *ts.Trade, hook *logTest.Hook){
+				assert.Equal(t, 1, len(hook.Entries))
+				entry := hook.LastEntry()
+				assert.Equal(t, log.ErrorLevel, entry.Level)
+				assert.Equal(t, tp.Pair, entry.Data["trade_pair"])
+				assert.Equal(t, 100.00, entry.Data["price"])
+				assert.NotEmpty(t, entry.Message)
+			},
+		},
+	}
+
+	for _, tt := range testcases {
+		t.Run(tt.name, func(t *testing.T) {
+			logTest, hook := logTest.NewNullLogger()
+			vwape := VwapEngine{
+				log: logTest,
+				storageManagers: tt.mockStorageManager(ctrl, tt.tp),
+			}
+
+			vwape.logUpdatedVwap(tt.tp)
+
+			tt.doAsserts(t, tt.tp, hook)
+		})
+	}
 }
 
 func TestCalculateVwap(t *testing.T) {
