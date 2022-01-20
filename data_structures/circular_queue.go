@@ -2,8 +2,6 @@ package data_structures
 
 import "fmt"
 
-// TODO remove this constant. Add max size as a parameter to NewCircularQueue and change elements to be a slice.
-// TODO this constant should NOT be exported
 const MaxSize int = 201
 
 type CircularQueue struct {
