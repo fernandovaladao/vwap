@@ -1,3 +1,5 @@
+TRADE_PAIRS=BTC-USD ETH-BTC ETH-USD
+
 .DEFAULT_GOAL := install
 IMAGE=zero-hash-vwap
 VERSION=v1.0.0
@@ -11,6 +13,7 @@ install: build test
 
 .PHONY: clean
 clean:
+	@docker rmi $(E2E-IMAGE):$(E2E-VERSION)
 	@docker rmi $(IMAGE):$(VERSION)
 	
 .PHONY: build

@@ -17,5 +17,5 @@ func TestBTCUSDCalculateVwap(t *testing.T) {
 	go vwape.Calculate()
 	time.Sleep(5 * time.Second)
 
-	assert.Greater(t, vwape.storageManagers[tradePair].GetSum(), 0.00)
+	assert.Greater(t, vwape.storageManagers[tradingPair(tradePair)].GetSum(), 0.00)
 }

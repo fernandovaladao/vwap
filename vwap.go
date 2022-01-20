@@ -60,7 +60,11 @@ func (vwape *VwapEngine) readNextTradePair() (*ts.Trade, error) {
 func (vwape *VwapEngine) logUpdatedVwap(tp *ts.Trade) {
 	pair := tp.Pair
 	if sm, ok := vwape.storageManagers[tradingPair(pair)]; !ok {
-		log.WithField("trade_pair", pair).Warn("Received a trading price for an unexpected trading pair.")
+		if pair != "" {
+			log.WithField("trade_pair", pair).Warn("Received a trading price for an unexpected trading pair.")
+		} else {
+			log.WithField("trade", tp).Warn("Unknown trading message")
+		}
 	} else if price, err := strconv.ParseFloat(tp.Price, 64); err != nil {
 		log.WithError(err).WithField("price", tp.Price).Error("Error converting price to float64")
 	} else if vwap, err := vwape.calculateVwap(sm, price); err != nil {
