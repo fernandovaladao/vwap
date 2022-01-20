@@ -1,3 +1,4 @@
+// +build integration
 
 package main
 
@@ -9,11 +10,12 @@ import (
 )
 
 func TestBTCUSDCalculateVwap(t *testing.T) {
-	vwape, err := NewVwapEngine([]string{"BTC-USD"})
+	tradePair := "BTC-USD"
+	vwape, err := NewVwapEngine([]string{tradePair})
 	assert.Nil(t, err)
 
 	go vwape.Calculate()
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 
-	assert.Greater(t, vwape.storageManagers["BTC-USD"].GetSum(), 0.00)
+	assert.Greater(t, vwape.storageManagers[tradePair].GetSum(), 0.00)
 }

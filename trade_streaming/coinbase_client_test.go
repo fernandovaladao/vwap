@@ -12,8 +12,8 @@ func TestReadValue(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	testCases := []struct {
-		name string
-		mockConn func(ctrl *gomock.Controller) Conn
+		name      string
+		mockConn  func(ctrl *gomock.Controller) Conn
 		doAsserts func(t *testing.T, trade *Trade, err error)
 	}{
 		{

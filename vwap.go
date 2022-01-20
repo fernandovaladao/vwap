@@ -22,8 +22,6 @@ type VwapEngine struct {
 func NewVwapEngine(tradingPairs []string) (*VwapEngine, error) {
 	storageManagers := make(map[tradingPair]sm.StorageManager)
 	for _, tp := range tradingPairs {
-		// TODO once the circular queue used by StorageManager is changed to be a slice instead of a fixed-size array, we should pass "maxStorage"
-		// as a parameter here and use it to build the circular queue.
 		storageManagers[tradingPair(tp)] = sm.NewInMemoryStorageManager()
 	}
 	if streamingClient, err := ts.NewCoinbaseClient(tradingPairs); err != nil {
