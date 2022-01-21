@@ -119,12 +119,13 @@ func (StorageManager) store(price)
     if buffer.isFull():
         dequeue e from buffer
         decrement e in sum
-    enqueue new price in buffer
-    increment sum with new trading price
+    enqueue price in buffer
+    increment sum with new price
 ```
 
 ### *trade_streaming*
 The purpose of this package is to provide an interface to stream trading prices for a set of trading pairs.
+
 The current implementation feeds `Coinbase Websocket` in sandbox environment using `Gorilla WebSocket` api.
 
 ### *main*
