@@ -63,7 +63,7 @@ This command runs the `vwap` engine with this pre-defined set of trading pairs:
 
 You can inform an alternative set of trading pairs using the following variable:
 ```console
-$make run TRADE_PAIRS='BTC-USD BNB-USD'
+$ make run TRADE_PAIRS='BTC-USD BNB-USD'
 ```
 
 Once you are done with running the project, you can type the following command to clean up the Docker images:
