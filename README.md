@@ -2,7 +2,9 @@
 # Zero Hash Code Assessment: Volume-Weighted Average Price Calculation Engine
 ------------------------------------------------
 
-This repository contains an implementation for a real-time VWAP (volume-weighted average price) calculation engine. The project is a simple CLI tool that echos back the average price for the last 200 trading prices for a set of crypto currencies.
+This repository contains an implementation for a real-time VWAP (volume-weighted average price) calculation engine.
+
+The project is a simple CLI tool that echos back the average price for the last 200 trading prices for a set of crypto currencies.
 
 # Prerequisites
 
@@ -51,20 +53,20 @@ time="2022-01-21T11:38:41Z" level=info trade_pair=BTC-USD vwap=968.5214500000001
 time="2022-01-21T11:38:46Z" level=info trade_pair=BTC-USD vwap=1161.9394
 time="2022-01-21T11:38:52Z" level=info trade_pair=BTC-USD vwap=1356.06225
 ```
-This command runs the `vwap` engine with the pre-defined set of trading pairs[^1]:
+This command runs the `vwap` engine with this pre-defined set of trading pairs:
 - BTC-USD,
-- ETH-USD, and
+- ETH-USD[^1], and
 - ETH-BTC.
 
 [^1]: Currently, the sandbox of `Coinbase Websocket` feed returns an error for `ETH-USD`, so no trading price is printed out for it. It is not clear if this is an intermitent issue with the service or a limitation.
 
 
-You can inform an alternative set of trading pairs using the followging variable:
+You can inform an alternative set of trading pairs using the following variable:
 ```console
 $make run TRADE_PAIRS='BTC-USD BNB-USD'
 ```
 
-Once you are done with running the project, you can run the following command to clean the Docker images:
+Once you are done with running the project, you can type the following command to clean up the Docker images:
 ```console
 $ make clean
 Untagged: zero-hash-vwap-e2e-tests:latest
@@ -78,7 +80,7 @@ Deleted: sha256:12cdcc0468215b4db80f7d2098cf83a31c742583d4e67d53a45d9127c24aa742
 ## Dockerfile
 
 The [Dockerfile](./Dockerfile) codifies all the tools needed for the project
-and the commands that need to be run for building and testing it.
+and the commands that need to be run for building, testing and running it.
 
 ## Makefile
 
@@ -104,13 +106,11 @@ This data structure has *O(1)* space and time complexity for all of its operatio
 
 ### *storage_manager*
 The *storage_manager*  package provides an interface to persist the last 200 trading prices for a
-trading pair and also get the sum of these elements. 
-
-It uses a circular queue as its buffer, which means
-that all its operations run in *O(1)* time complexity and uses *O(1)* space.
+trading pair and also get the sum of these elements. It uses a circular queue as its buffer, which means
+that all these operations run in *O(1)* time complexity and uses *O(1)* space.
 
 The algorithm used to store new trading prices can be described as follows:
-```console
+```python
 StorageManager:
     buffer
     sum
@@ -134,7 +134,7 @@ This package wraps all the interfaces provided in the previous packages to build
 - a log system, which currently prints out the calculated values to the standard console output.
 The algorithm to calculate `vwap` for each trading pair is:
 
-```console
+```python
 VWAPEngine:
     storage_managers
     trade_client
@@ -147,3 +147,7 @@ func (VWAPEngine) calculate:
         vwap = sm.sum() / 200
         log.Info(trade.pair, vwap)
 ```
+
+The space complexity of this operation is *O(n)*, where *n* is the number of trading pairs being evaluated. The running complexity is hard
+to guess, because we would have to rely on several variables we currently do not have information about, specially the time complexiy to read
+value from the stream.
